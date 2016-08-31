@@ -63,7 +63,7 @@ namespace triton {
         triton::ast::representations::AstRepresentation* astRepresentation;
 
         //! The Callbacks interface.
-        triton::callbacks::Callbacks* callbacks;
+        triton::callbacks::Callbacks callbacks;
 
       public:
         //! Constructor of the API.
@@ -132,13 +132,13 @@ namespace triton {
         triton::uint8 getConcreteMemoryValue(triton::uint64 addr) const;
 
         //! [**architecture api**] - Returns the concrete value of memory cells.
-        triton::uint512 getConcreteMemoryValue(const triton::arch::MemoryAccess& mem) const;
+        triton::uint512 getConcreteMemoryValue(const triton::arch::MemoryAccess& mem, bool execCallbacks=true) const;
 
         //! [**architecture api**] - Returns the concrete value of a memory area.
-        std::vector<triton::uint8> getConcreteMemoryAreaValue(triton::uint64 baseAddr, triton::usize size) const;
+        std::vector<triton::uint8> getConcreteMemoryAreaValue(triton::uint64 baseAddr, triton::usize size, bool execCallbacks=true) const;
 
         //! [**architecture api**] - Returns the concrete value of a register.
-        triton::uint512 getConcreteRegisterValue(const triton::arch::Register& reg) const;
+        triton::uint512 getConcreteRegisterValue(const triton::arch::Register& reg, bool execCallbacks=true) const;
 
         /*!
          * \brief [**architecture api**] - Sets the concrete value of a memory cell.
@@ -265,13 +265,13 @@ namespace triton {
 
         /* Callbacks API ================================================================================= */
 
-        //! [**callbacks api**] - Raises an exception if the Callbacks interface is not initialized.
-        void checkCallbacks(void) const;
+        //! [**callbacks api**] - Adds a GET_CONCRETE_MEMORY_VALUE callback.
+        void addCallback(triton::callbacks::getConcreteMemoryValueCallback cb);
 
-        //! [**callbacks api**] - Adds a memory hit callback.
-        void addCallback(triton::callbacks::memoryHitCallback cb);
+        //! [**callbacks api**] - Adds a GET_CONCRETE_REGISTER_VALUE callback.
+        void addCallback(triton::callbacks::getConcreteRegisterValueCallback cb);
 
-        //! [**callbacks api**] - Adds a symbolic simplification callback.
+        //! [**callbacks api**] - Adds a SYMBOLIC_SIMPLIFICATION callback.
         void addCallback(triton::callbacks::symbolicSimplificationCallback cb);
 
         #ifdef TRITON_PYTHON_BINDINGS
@@ -279,14 +279,20 @@ namespace triton {
         void addCallback(PyObject* function, triton::callbacks::callback_e kind);
         #endif
 
-        //! [**callbacks api**] - Deletes a memory hit callback.
-        void removeCallback(triton::callbacks::memoryHitCallback cb);
+        //! [**callbacks api**] - Removes all recorded callbacks.
+        void removeAllCallbacks(void);
 
-        //! [**callbacks api**] - Deletes a symbolic simplification callback.
+        //! [**callbacks api**] - Deletes a GET_CONCRETE_MEMORY_VALUE callback.
+        void removeCallback(triton::callbacks::getConcreteMemoryValueCallback cb);
+
+        //! [**callbacks api**] - Deletes a GET_CONCRETE_REGISTER_VALUE callback.
+        void removeCallback(triton::callbacks::getConcreteRegisterValueCallback cb);
+
+        //! [**callbacks api**] - Deletes a SYMBOLIC_SIMPLIFICATION callback.
         void removeCallback(triton::callbacks::symbolicSimplificationCallback cb);
 
         #ifdef TRITON_PYTHON_BINDINGS
-        //! [**callbacks api**] - Deletes a python callback.
+        //! [**callbacks api**] - Deletes a python callback according to its kind.
         void removeCallback(PyObject* function, triton::callbacks::callback_e kind);
         #endif
 
@@ -294,7 +300,10 @@ namespace triton {
         triton::ast::AbstractNode* processCallbacks(triton::callbacks::callback_e kind, triton::ast::AbstractNode* node) const;
 
         //! [**callbacks api**] - Processes callbacks according to the kind and the C++ polymorphism.
-        void processCallbacks(triton::callbacks::callback_e kind, triton::uint64 address) const;
+        void processCallbacks(triton::callbacks::callback_e kind, const triton::arch::MemoryAccess& mem) const;
+
+        //! [**callbacks api**] - Processes callbacks according to the kind and the C++ polymorphism.
+        void processCallbacks(triton::callbacks::callback_e kind, const triton::arch::Register& reg) const;
 
 
 

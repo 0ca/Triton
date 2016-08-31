@@ -544,7 +544,6 @@ namespace tracer {
 
     /* Callback before instruction processing */
     static void callbackBefore(triton::arch::Instruction* tritonInst, triton::uint8* addr, triton::uint32 size, CONTEXT* ctx, THREADID threadId) {
-
       /* Some configurations must be applied before processing */
       tracer::pintool::callbacks::preProcessing(tritonInst, threadId);
 
@@ -563,9 +562,6 @@ namespace tracer {
       tritonInst->setOpcodes(addr, size);
       tritonInst->setAddress(reinterpret_cast<triton::__uint>(addr));
       tritonInst->setThreadId(reinterpret_cast<triton::uint32>(threadId));
-
-      /* Setup the concrete context */
-      tracer::pintool::context::setupContextRegister(tritonInst, ctx);
 
       /* Disassemble the instruction */
       triton::api.disassembly(*tritonInst);
@@ -613,7 +609,6 @@ namespace tracer {
 
     /* Callback after instruction processing */
     static void callbackAfter(triton::arch::Instruction* tritonInst, CONTEXT* ctx, THREADID threadId) {
-
       if (!tracer::pintool::analysisTrigger.getState() || threadId != tracer::pintool::options::targetThreadId)
       /* Analysis locked */
         return;

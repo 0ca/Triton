@@ -11,6 +11,8 @@
 #include <list>
 
 #include "ast.hpp"
+#include "register.hpp"
+#include "memoryAccess.hpp"
 #include "tritonTypes.hpp"
 
 #ifdef TRITON_PYTHON_BINDINGS
@@ -36,21 +38,29 @@ namespace triton {
 
     /*! Enumerates all kinds callbacks. */
     enum callback_e {
-      MEMORY_HIT,               /*!< Memory hits callback */
-      SYMBOLIC_SIMPLIFICATION,  /*!< Symbolic simplification callback */
+      GET_CONCRETE_MEMORY_VALUE,    /*!< Get concrete memory value callback */
+      GET_CONCRETE_REGISTER_VALUE,  /*!< Get concrete register value callback */
+      SYMBOLIC_SIMPLIFICATION,      /*!< Symbolic simplification callback */
     };
 
-    /*! \brief The prototype of a memory hit callback.
+    /*! \brief The prototype of a GET_CONCRETE_MEMORY_VALUE callback.
      *
-     * \description The callback takes as uniq argument an address which representes the memory
-     * cell hit. Callbacks will be called each time that a memory cell will be hit.
+     * \description The callback takes as unique argument a memory access. Callbacks will
+     * be called each time that the Triton library will need a concrete memory value.
      */
-    typedef void (*memoryHitCallback)(triton::uint64 address);
+    typedef void (*getConcreteMemoryValueCallback)(triton::arch::MemoryAccess& mem);
 
-    /*! \brief The prototype of a symbolic simplification callback.
+    /*! \brief The prototype of a GET_CONCRETE_REGISTER_VALUE callback.
      *
-     * \description The callback takes as uniq argument an triton::ast::AbstractNode and must return a valid triton::ast::AbstractNode.
-     * The returned node is used as assignment. See also the page about \ref SMT_simplification_page.
+     * \description The callback takes as unique argument a register. Callbacks will be
+     * called each time that the Triton library will need a concrete register value.
+     */
+    typedef void (*getConcreteRegisterValueCallback)(triton::arch::Register& reg);
+
+    /*! \brief The prototype of a SYMBOLIC_SIMPLIFICATION callback.
+     *
+     * \description The callback takes as uniq argument a triton::ast::AbstractNode and must return a valid triton::ast::AbstractNode.
+     * The returned node is used as assignment. See also the page about \ref SMT_simplification_page for more information.
      */
     typedef triton::ast::AbstractNode* (*symbolicSimplificationCallback)(triton::ast::AbstractNode* node);
 
@@ -59,15 +69,21 @@ namespace triton {
     class Callbacks {
       protected:
         #ifdef TRITON_PYTHON_BINDINGS
-        //! [python] Callbacks for all memory hits.
-        std::list<PyObject*> pyMemoryHitCallbacks;
+        //! [python] Callbacks for all concrete memory needs.
+        std::list<PyObject*> pyGetConcreteMemoryValueCallbacks;
+
+        //! [python] Callbacks for all concrete register needs.
+        std::list<PyObject*> pyGetConcreteRegisterValueCallbacks;
 
         //! [python] Callbacks for all symbolic simplifications.
         std::list<PyObject*> pySymbolicSimplificationCallbacks;
         #endif
 
-        //! [c++] Callbacks for all memory hits.
-        std::list<triton::callbacks::memoryHitCallback> memoryHitCallbacks;
+        //! [c++] Callbacks for all concrete memory needs.
+        std::list<triton::callbacks::getConcreteMemoryValueCallback> getConcreteMemoryValueCallbacks;
+
+        //! [c++] Callbacks for all concrete register needs.
+        std::list<triton::callbacks::getConcreteRegisterValueCallback> getConcreteRegisterValueCallbacks;
 
         //! [c++] Callbacks for all symbolic simplifications.
         std::list<triton::callbacks::symbolicSimplificationCallback> symbolicSimplificationCallbacks;
@@ -91,10 +107,13 @@ namespace triton {
         //! Copies a Callbacks class
         void operator=(const Callbacks& copy);
 
-        //! Adds a memory hit callback.
-        void addCallback(triton::callbacks::memoryHitCallback cb);
+        //! Adds a GET_CONCRETE_MEMORY_VALUE callback.
+        void addCallback(triton::callbacks::getConcreteMemoryValueCallback cb);
 
-        //! Adds a symbolic simplification callback.
+        //! Adds a GET_CONCRETE_REGISTER_VALUE callback.
+        void addCallback(triton::callbacks::getConcreteRegisterValueCallback cb);
+
+        //! Adds a SYMBOLIC_SIMPLIFICATION callback.
         void addCallback(triton::callbacks::symbolicSimplificationCallback cb);
 
         #ifdef TRITON_PYTHON_BINDINGS
@@ -102,14 +121,20 @@ namespace triton {
         void addCallback(PyObject* function, triton::callbacks::callback_e kind);
         #endif
 
-        //! Deletes a memory hit callback.
-        void removeCallback(triton::callbacks::memoryHitCallback cb);
+        //! Removes all recorded callbacks.
+        void removeAllCallbacks(void);
 
-        //! Deletes a symbolic simplification callback.
+        //! Deletes a GET_CONCRETE_MEMORY_VALUE callback.
+        void removeCallback(triton::callbacks::getConcreteMemoryValueCallback cb);
+
+        //! Deletes a GET_CONCRETE_REGISTER_VALUE callback.
+        void removeCallback(triton::callbacks::getConcreteRegisterValueCallback cb);
+
+        //! Deletes a SYMBOLIC_SIMPLIFICATION callback.
         void removeCallback(triton::callbacks::symbolicSimplificationCallback cb);
 
         #ifdef TRITON_PYTHON_BINDINGS
-        //! Deletes a python callback.
+        //! Deletes a python callback according to its kind.
         void removeCallback(PyObject* function, triton::callbacks::callback_e kind);
         #endif
 
@@ -117,7 +142,10 @@ namespace triton {
         triton::ast::AbstractNode* processCallbacks(triton::callbacks::callback_e kind, triton::ast::AbstractNode* node) const;
 
         //! Processes callbacks according to the kind and the C++ polymorphism.
-        void processCallbacks(triton::callbacks::callback_e kind, triton::uint64 address) const;
+        void processCallbacks(triton::callbacks::callback_e kind, const triton::arch::MemoryAccess& mem) const;
+
+        //! Processes callbacks according to the kind and the C++ polymorphism.
+        void processCallbacks(triton::callbacks::callback_e kind, const triton::arch::Register& reg) const;
     };
 
   /*! @} End of callbacks namespace */
